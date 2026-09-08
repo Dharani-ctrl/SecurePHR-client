@@ -94,6 +94,27 @@ export default function ResearcherPortal({ activeUserId = 'researcher_david' }) 
     }
   };
 
+  const renderPayload = (payload) => {
+    if (!payload) return '';
+    if (typeof payload === 'object') {
+      try {
+        return JSON.stringify(payload, null, 2);
+      } catch (e) {
+        return String(payload);
+      }
+    }
+    const str = String(payload).trim();
+    if (str.startsWith('{') || str.startsWith('[')) {
+      try {
+        const parsed = JSON.parse(str);
+        return JSON.stringify(parsed, null, 2);
+      } catch (e) {
+        return str;
+      }
+    }
+    return str;
+  };
+
   return (
     <div className="space-y-6">
       
@@ -115,18 +136,18 @@ export default function ResearcherPortal({ activeUserId = 'researcher_david' }) 
       {/* Researcher Identity Selector & Search Bar */}
       <div className="bg-white p-6 rounded-xl border border-slate-200 shadow-sm space-y-4">
         
-        <div className="flex flex-col md:flex-row gap-4 items-end">
+        <div className="flex flex-col lg:flex-row gap-4 items-stretch lg:items-end">
           
           {/* Select Researcher Profile */}
-          <div className="w-full md:w-1/3">
-            <label className="block text-xs font-semibold text-slate-700 mb-1 flex items-center space-x-1">
+          <div className="w-full lg:w-1/3 space-y-1.5">
+            <label className="block text-xs font-semibold text-slate-700 flex items-center space-x-1">
               <Award className="w-3.5 h-3.5 text-purple-600" />
               <span>Select Active Approved Researcher</span>
             </label>
             <select
               value={selectedResearcherId}
               onChange={(e) => setSelectedResearcherId(e.target.value)}
-              className="w-full light-input px-3 py-2 rounded-lg text-xs bg-white text-slate-900 font-bold"
+              className="w-full light-input px-3 py-2 rounded-lg text-xs bg-white text-slate-900 font-bold focus:ring-2 focus:ring-purple-500/20"
             >
               {researchersList.map(r => (
                 <option key={r.userId} value={r.userId}>
@@ -137,22 +158,22 @@ export default function ResearcherPortal({ activeUserId = 'researcher_david' }) 
           </div>
 
           {/* Search Keywords Input */}
-          <div className="w-full md:w-2/3 flex gap-2">
-            <div className="flex-1">
-              <label className="block text-xs font-semibold text-slate-700 mb-1">Search Keywords (Comma Separated)</label>
+          <div className="w-full lg:w-2/3 flex flex-col sm:flex-row gap-2 items-stretch sm:items-end">
+            <div className="flex-1 space-y-1.5">
+              <label className="block text-xs font-semibold text-slate-700">Search Keywords (Comma Separated)</label>
               <input
                 type="text"
                 value={searchKeywordsInput}
                 onChange={(e) => setSearchKeywordsInput(e.target.value)}
                 placeholder="e.g. hypertension, cardiology, kmch"
-                className="w-full light-input px-3 py-2 rounded-lg text-xs"
+                className="w-full light-input px-3 py-2 rounded-lg text-xs focus:ring-2 focus:ring-purple-500/20"
               />
             </div>
             
             <button
               onClick={handleExecuteSearch}
               disabled={loadingSearch}
-              className="px-6 py-2.5 mt-5 bg-purple-600 hover:bg-purple-700 text-white text-xs font-bold rounded-lg shadow-sm transition flex items-center space-x-2 whitespace-nowrap"
+              className="px-6 py-2.5 bg-purple-600 hover:bg-purple-700 text-white text-xs font-bold rounded-lg shadow-sm transition flex items-center justify-center space-x-2 whitespace-nowrap active:scale-95 disabled:opacity-50"
             >
               <Search className="w-4 h-4" />
               <span>{loadingSearch ? 'Querying Datasets...' : 'Search Encrypted Datasets'}</span>
@@ -296,7 +317,7 @@ export default function ResearcherPortal({ activeUserId = 'researcher_david' }) 
           </div>
 
           <div className="p-4 rounded-xl bg-slate-900 text-slate-100 font-mono text-xs overflow-x-auto whitespace-pre-wrap">
-            {JSON.stringify(JSON.parse(decryptedRecord.decryptedPayload), null, 2)}
+            {renderPayload(decryptedRecord.decryptedPayload)}
           </div>
         </div>
       )}

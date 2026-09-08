@@ -1,10 +1,10 @@
 import React, { useState, useEffect } from 'react';
-import { Search, ShieldAlert, Key, Lock, Unlock, FileText, CheckCircle, XCircle, Clock, Eye } from 'lucide-react';
+import { Search, ShieldAlert, Key, Lock, Unlock, FileText, CheckCircle, XCircle, Clock, Eye, Sparkles, Filter, Copy, Check } from 'lucide-react';
 import { searchPHR, decryptPHR, getUsers } from '../services/api';
 
 export default function DoctorPortal() {
   const [doctorsList, setDoctorsList] = useState([]);
-  const [selectedDoctorId, setSelectedDoctorId] = useState('dr_bob');
+  const [selectedDoctorId, setSelectedDoctorId] = useState('dr_arun');
   const [searchKeywordsInput, setSearchKeywordsInput] = useState('');
   
   const [loadingSearch, setLoadingSearch] = useState(false);
@@ -15,14 +15,18 @@ export default function DoctorPortal() {
   const [decryptedRecord, setDecryptedRecord] = useState(null);
   const [decryptionError, setDecryptionError] = useState(null);
   const [loadingDecryptId, setLoadingDecryptId] = useState(null);
+  const [copiedTrapdoor, setCopiedTrapdoor] = useState(false);
 
   useEffect(() => {
     async function loadDoctors() {
       try {
         const res = await getUsers();
-        if (res.data.success) {
-          const docs = res.data.users.filter(u => u.role === 'DOCTOR' || u.role === 'RESEARCHER');
+        if (res.data.success && res.data.users) {
+          const docs = res.data.users.filter(u => u.role === 'DOCTOR');
           setDoctorsList(docs);
+          if (docs.length > 0) {
+            setSelectedDoctorId(docs[0].userId);
+          }
         }
       } catch (err) {
         console.error(err);
@@ -31,7 +35,13 @@ export default function DoctorPortal() {
     loadDoctors();
   }, []);
 
-  const currentDoctor = doctorsList.find(d => d.userId === selectedDoctorId);
+  const currentDoctor = doctorsList.find(d => d.userId === selectedDoctorId) || doctorsList[0];
+
+  const handleCopyTrapdoor = (text) => {
+    navigator.clipboard.writeText(text);
+    setCopiedTrapdoor(true);
+    setTimeout(() => setCopiedTrapdoor(false), 2000);
+  };
 
   const handleExecuteSearch = async (e) => {
     e.preventDefault();
@@ -42,8 +52,10 @@ export default function DoctorPortal() {
       setDecryptedRecord(null);
       setDecryptionError(null);
 
+      const activeDoctorId = selectedDoctorId || (doctorsList[0] ? doctorsList[0].userId : 'dr_arun');
+
       const res = await searchPHR({
-        doctorUserId: selectedDoctorId,
+        doctorUserId: activeDoctorId,
         searchKeywords: searchKeywordsInput
       });
 
@@ -53,6 +65,7 @@ export default function DoctorPortal() {
       }
     } catch (err) {
       console.error(err);
+      setDecryptionError(err.response?.data?.message || 'Search execution failed');
     } finally {
       setLoadingSearch(false);
     }
@@ -64,9 +77,11 @@ export default function DoctorPortal() {
       setDecryptionError(null);
       setDecryptedRecord(null);
 
+      const activeDoctorId = selectedDoctorId || (doctorsList[0] ? doctorsList[0].userId : 'dr_arun');
+
       const res = await decryptPHR({
         phrId,
-        doctorUserId: selectedDoctorId
+        doctorUserId: activeDoctorId
       });
 
       if (res.data.success) {
@@ -79,65 +94,89 @@ export default function DoctorPortal() {
     }
   };
 
+  const renderPayload = (payload) => {
+    if (!payload) return '';
+    if (typeof payload === 'object') {
+      try {
+        return JSON.stringify(payload, null, 2);
+      } catch (e) {
+        return String(payload);
+      }
+    }
+    const str = String(payload).trim();
+    if (str.startsWith('{') || str.startsWith('[')) {
+      try {
+        const parsed = JSON.parse(str);
+        return JSON.stringify(parsed, null, 2);
+      } catch (e) {
+        return str;
+      }
+    }
+    return str;
+  };
+
   return (
     <div className="space-y-6">
       
       {/* Header Banner */}
-      <div className="bg-gradient-to-r from-sky-900 via-indigo-900 to-slate-900 p-6 rounded-2xl text-white shadow-md relative overflow-hidden">
-        <div className="absolute -right-10 -bottom-10 w-48 h-48 bg-sky-400/10 rounded-full blur-2xl pointer-events-none"></div>
-        <div>
-          <div className="flex items-center space-x-2 text-sky-300 text-xs font-bold uppercase tracking-wider mb-1">
-            <Search className="w-4 h-4" />
-            <span>Data User (Doctor / Researcher) Encrypted Search & Decryption</span>
+      <div className="bg-gradient-to-r from-sky-950 via-indigo-950 to-slate-900 p-6 sm:p-7 rounded-2xl text-white shadow-xl border border-sky-900/60 relative overflow-hidden">
+        <div className="absolute top-0 right-0 w-96 h-96 bg-indigo-500/10 rounded-full blur-3xl pointer-events-none -mr-20 -mt-20"></div>
+        <div className="relative z-10 space-y-2 max-w-3xl">
+          <div className="flex items-center space-x-2 text-sky-300 text-xs font-bold uppercase tracking-wider">
+            <span className="w-2 h-2 rounded-full bg-sky-400 animate-ping"></span>
+            <Search className="w-4 h-4 text-sky-400" />
+            <span>Data User (Doctor / Researcher) Query Portal</span>
           </div>
-          <h1 className="text-2xl font-bold text-white">Multi-Keyword Search Trapdoor Generation (TrapGen)</h1>
-          <p className="text-sm text-slate-200 max-w-3xl mt-1">
-            Instead of querying plaintext keywords, your identity-bound private key generates an **Encrypted Search Trapdoor** <code className="text-sky-300 bg-sky-950/60 px-1.5 py-0.5 rounded">T_W</code>. The Cloud evaluates hierarchical access policies and encrypted index matches without learning original health keywords or file contents.
+          <h1 className="text-2xl sm:text-3xl font-extrabold text-white tracking-tight">
+            Multi-Keyword Search Trapdoor Generation (TrapGen)
+          </h1>
+          <p className="text-xs sm:text-sm text-slate-200 leading-relaxed font-normal">
+            Instead of querying plaintext keywords, your identity-bound private key generates an **Encrypted Search Trapdoor** (<code className="text-sky-300 bg-sky-950/80 px-1.5 py-0.5 rounded font-mono text-[11px] border border-sky-800">T_W</code>). The Cloud evaluates hierarchical access policies and encrypted index matches without learning original health keywords or file contents.
           </p>
         </div>
       </div>
 
       {/* Doctor Identity Selector & Search Bar */}
-      <div className="bg-white p-6 rounded-xl border border-slate-200 shadow-sm space-y-4">
+      <div className="bg-white p-6 sm:p-7 rounded-2xl border border-slate-200/90 shadow-xs space-y-5">
         
-        <div className="flex flex-col md:flex-row gap-4 items-end">
+        <div className="flex flex-col lg:flex-row gap-4 items-stretch lg:items-end">
           
           {/* Select Doctor Profile */}
-          <div className="w-full md:w-1/3">
-            <label className="block text-xs font-semibold text-slate-700 mb-1 flex items-center space-x-1">
+          <div className="w-full lg:w-1/3 space-y-1.5">
+            <label className="block text-xs font-semibold text-slate-700 flex items-center space-x-1">
               <Key className="w-3.5 h-3.5 text-sky-600" />
-              <span>Select Active Doctor / Researcher Identity</span>
+              <span>Select Active Doctor Identity</span>
             </label>
             <select
               value={selectedDoctorId}
               onChange={(e) => setSelectedDoctorId(e.target.value)}
-              className="w-full light-input px-3 py-2 rounded-lg text-xs bg-white text-slate-900 font-bold"
+              className="w-full light-input px-3.5 py-2.5 rounded-xl text-xs bg-white text-slate-900 font-bold focus:ring-2 focus:ring-sky-500/20"
             >
               {doctorsList.map(d => (
                 <option key={d.userId} value={d.userId}>
-                  {d.name} ({d.role}) — {d.attributes.join(', ')}
+                  {d.name} ({d.role}) — {d.attributes ? d.attributes.join(', ') : 'Active'}
                 </option>
               ))}
             </select>
           </div>
 
           {/* Search Keywords Input */}
-          <div className="w-full md:w-2/3 flex gap-2">
-            <div className="flex-1">
-              <label className="block text-xs font-semibold text-slate-700 mb-1">Search Keywords (Comma Separated)</label>
+          <div className="w-full lg:w-2/3 flex flex-col sm:flex-row gap-2 items-stretch sm:items-end">
+            <div className="flex-1 space-y-1.5">
+              <label className="block text-xs font-semibold text-slate-700">Search Keywords (Comma Separated)</label>
               <input
                 type="text"
                 value={searchKeywordsInput}
                 onChange={(e) => setSearchKeywordsInput(e.target.value)}
                 placeholder="e.g. hypertension, cardiology, ecg"
-                className="w-full light-input px-3 py-2 rounded-lg text-xs"
+                className="w-full light-input px-3.5 py-2.5 rounded-xl text-xs focus:ring-2 focus:ring-sky-500/20"
               />
             </div>
             
             <button
               onClick={handleExecuteSearch}
               disabled={loadingSearch}
-              className="px-6 py-2.5 mt-5 bg-sky-600 hover:bg-sky-700 text-white text-xs font-bold rounded-lg shadow-sm transition flex items-center space-x-2 whitespace-nowrap"
+              className="px-6 py-2.5 bg-gradient-to-r from-sky-600 to-indigo-600 hover:from-sky-700 hover:to-indigo-700 text-white text-xs font-bold rounded-xl shadow-md transition flex items-center justify-center space-x-2 whitespace-nowrap active:scale-95 disabled:opacity-50"
             >
               <Search className="w-4 h-4" />
               <span>{loadingSearch ? 'Generating Trapdoor...' : 'Generate Trapdoor & Search'}</span>
@@ -148,11 +187,11 @@ export default function DoctorPortal() {
 
         {/* Doctor Active Attributes Card */}
         {currentDoctor && (
-          <div className="flex items-center space-x-2 p-3 rounded-lg bg-slate-50 border border-slate-200 text-xs">
+          <div className="flex flex-wrap items-center gap-2 p-3.5 rounded-xl bg-slate-50 border border-slate-200 text-xs">
             <span className="text-slate-600 font-semibold">Bound Attributes for {currentDoctor.name}:</span>
-            <div className="flex flex-wrap gap-1">
-              {currentDoctor.attributes.map(att => (
-                <span key={att} className="px-2 py-0.5 text-[10px] font-mono bg-sky-50 text-sky-700 border border-sky-200 rounded font-semibold">
+            <div className="flex flex-wrap gap-1.5">
+              {currentDoctor.attributes && currentDoctor.attributes.map(att => (
+                <span key={att} className="px-2.5 py-1 text-[11px] font-mono bg-sky-50 text-sky-800 border border-sky-200 rounded-lg font-bold shadow-2xs">
                   {att}
                 </span>
               ))}
@@ -164,26 +203,33 @@ export default function DoctorPortal() {
 
       {/* Generated Trapdoor Metadata Display */}
       {trapdoorMeta && (
-        <div className="bg-sky-50 p-4 rounded-xl border border-sky-200 space-y-2 text-xs">
-          <div className="flex items-center justify-between font-bold text-sky-900">
+        <div className="bg-sky-50/90 p-5 rounded-2xl border border-sky-200 space-y-3 text-xs shadow-xs animate-fadeIn">
+          <div className="flex items-center justify-between font-bold text-sky-950">
             <span className="flex items-center space-x-2">
               <Lock className="w-4 h-4 text-sky-600" />
               <span>Encrypted Trapdoor Token (T_W) Sent to Cloud</span>
             </span>
-            <span className="text-[10px] text-slate-500 font-mono">Bound to r_ID factor</span>
+            <button
+              onClick={() => handleCopyTrapdoor(JSON.stringify(trapdoorMeta))}
+              className="text-sky-700 hover:text-sky-900 text-xs font-semibold flex items-center space-x-1"
+            >
+              {copiedTrapdoor ? <Check className="w-3.5 h-3.5 text-emerald-600" /> : <Copy className="w-3.5 h-3.5" />}
+              <span>{copiedTrapdoor ? 'Copied' : 'Copy Trapdoor JSON'}</span>
+            </button>
           </div>
-          <div className="grid grid-cols-1 sm:grid-cols-3 gap-2 font-mono text-[11px]">
-            <div className="p-2.5 rounded bg-white border border-sky-200">
+          
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 font-mono text-[11px]">
+            <div className="p-3 rounded-xl bg-white border border-sky-200/80 shadow-2xs space-y-1">
               <span className="text-slate-500 block text-[10px] font-sans font-semibold">T0 Component:</span>
-              <span className="text-sky-700 font-semibold">{trapdoorMeta.T0}</span>
+              <span className="text-sky-700 font-bold break-all">{trapdoorMeta.T0}</span>
             </div>
-            <div className="p-2.5 rounded bg-white border border-sky-200">
+            <div className="p-3 rounded-xl bg-white border border-sky-200/80 shadow-2xs space-y-1">
               <span className="text-slate-500 block text-[10px] font-sans font-semibold">T1 Trapdoor Component:</span>
-              <span className="text-sky-700 font-semibold">{trapdoorMeta.T1}</span>
+              <span className="text-sky-700 font-bold break-all">{trapdoorMeta.T1}</span>
             </div>
-            <div className="p-2.5 rounded bg-white border border-sky-200">
-              <span className="text-slate-500 block text-[10px] font-sans font-semibold">Trapdoor Randomness r_trap:</span>
-              <span className="text-slate-700 font-semibold">{trapdoorMeta.r_trap}</span>
+            <div className="p-3 rounded-xl bg-white border border-sky-200/80 shadow-2xs space-y-1">
+              <span className="text-slate-500 block text-[10px] font-sans font-semibold">Randomness Factor r_trap:</span>
+              <span className="text-slate-700 font-bold break-all">{trapdoorMeta.r_trap}</span>
             </div>
           </div>
         </div>
@@ -192,34 +238,41 @@ export default function DoctorPortal() {
       {/* Search Results Grid */}
       {searchResults && (
         <div className="space-y-4">
-          <h3 className="text-base font-bold text-slate-900 flex items-center justify-between">
-            <span>Cloud Search Results ({searchResults.length})</span>
-            <span className="text-xs text-slate-500 font-normal">Honest-but-Curious Cloud Execution</span>
-          </h3>
+          <div className="flex items-center justify-between pb-1 border-b border-slate-200">
+            <h3 className="text-base font-bold text-slate-900 flex items-center space-x-2">
+              <span>Cloud Search Results ({searchResults.length})</span>
+            </h3>
+            <span className="text-xs text-slate-500 font-semibold bg-slate-100 px-3 py-1 rounded-full border border-slate-200">
+              Honest-but-Curious Cloud Execution
+            </span>
+          </div>
 
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             {searchResults.map(res => (
               <div
                 key={res.phrId}
-                className={`p-5 rounded-xl border transition bg-white shadow-sm ${
+                className={`p-5 rounded-2xl border transition-all bg-white shadow-xs ${
                   res.authorized && res.matched
-                    ? 'border-emerald-300 bg-emerald-50/20'
-                    : 'border-slate-200'
+                    ? 'border-emerald-300/90 bg-emerald-50/20 hover:shadow-md'
+                    : 'border-slate-200/90 hover:shadow-sm'
                 }`}
               >
                 <div className="flex items-start justify-between">
-                  <div>
+                  <div className="space-y-0.5">
                     <h4 className="font-bold text-sm text-slate-900">{res.recordName}</h4>
-                    <p className="text-xs text-slate-500 mt-0.5">Patient: {res.patientName} (<code className="font-mono text-sky-700 font-bold">{res.phrId}</code>)</p>
+                    <p className="text-xs text-slate-500">
+                      Patient: <span className="font-semibold text-slate-700">{res.patientName}</span> (<code className="font-mono text-sky-700 font-bold">{res.phrId}</code>)
+                    </p>
                   </div>
+                  
                   {res.authorized ? (
-                    <span className="inline-flex items-center space-x-1 px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-emerald-100 text-emerald-800 border border-emerald-300">
-                      <CheckCircle className="w-3 h-3 text-emerald-600" />
+                    <span className="inline-flex items-center space-x-1 px-3 py-1 rounded-full text-[11px] font-bold bg-emerald-100 text-emerald-800 border border-emerald-300 shrink-0">
+                      <CheckCircle className="w-3.5 h-3.5 text-emerald-600" />
                       <span>Policy Passed</span>
                     </span>
                   ) : (
-                    <span className="inline-flex items-center space-x-1 px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-rose-100 text-rose-800 border border-rose-300">
-                      <XCircle className="w-3 h-3 text-rose-600" />
+                    <span className="inline-flex items-center space-x-1 px-3 py-1 rounded-full text-[11px] font-bold bg-rose-100 text-rose-800 border border-rose-300 shrink-0">
+                      <XCircle className="w-3.5 h-3.5 text-rose-600" />
                       <span>Access Denied</span>
                     </span>
                   )}
@@ -227,24 +280,26 @@ export default function DoctorPortal() {
 
                 <div className="mt-4 pt-3 border-t border-slate-100 space-y-2 text-xs">
                   <div className="flex justify-between items-center text-slate-600">
-                    <span className="font-medium">Keyword Match:</span>
+                    <span className="font-semibold">Keyword Match Status:</span>
                     {res.matched ? (
-                      <span className="text-emerald-700 font-bold">{res.matchedCount} Keywords Matched ({res.matchedKeywords.join(', ')})</span>
+                      <span className="text-emerald-700 font-extrabold bg-emerald-50 px-2 py-0.5 rounded border border-emerald-200">
+                        {res.matchedCount} Keywords Matched ({res.matchedKeywords.join(', ')})
+                      </span>
                     ) : (
-                      <span className="text-slate-400">No matching index tokens</span>
+                      <span className="text-slate-400 font-mono">No matching index tokens</span>
                     )}
                   </div>
 
                   <div className="flex justify-between items-center text-slate-500 text-[11px]">
                     <span className="flex items-center space-x-1">
-                      <Clock className="w-3 h-3 text-slate-400" />
-                      <span>Cloud Search Time:</span>
+                      <Clock className="w-3.5 h-3.5 text-slate-400" />
+                      <span>Cloud Search Execution Time:</span>
                     </span>
                     <span className="font-mono text-slate-700 font-bold">{res.searchTimeMs} ms</span>
                   </div>
 
                   {res.reason && (
-                    <div className="p-2 rounded.5 bg-rose-50 border border-rose-200 text-rose-800 text-[11px]">
+                    <div className="p-2.5 rounded-xl bg-rose-50 border border-rose-200 text-rose-800 text-[11px] leading-relaxed">
                       {res.reason}
                     </div>
                   )}
@@ -254,9 +309,9 @@ export default function DoctorPortal() {
                       <button
                         onClick={() => handleDecryptRecord(res.phrId)}
                         disabled={loadingDecryptId === res.phrId}
-                        className="px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold rounded-lg transition shadow-sm flex items-center space-x-1.5"
+                        className="px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold rounded-xl transition shadow-md flex items-center space-x-1.5 active:scale-95"
                       >
-                        <Unlock className="w-3.5 h-3.5" />
+                        <Unlock className="w-4 h-4" />
                         <span>{loadingDecryptId === res.phrId ? 'Decrypting...' : 'Decrypt Record (Dec)'}</span>
                       </button>
                     </div>
@@ -269,25 +324,27 @@ export default function DoctorPortal() {
         </div>
       )}
 
-      {/* Decrypted Payload Viewer Modal / Card */}
+      {/* Decrypted Payload Viewer Card */}
       {decryptedRecord && (
-        <div className="bg-emerald-50 p-6 rounded-xl border border-emerald-200 space-y-4 shadow-sm">
+        <div className="bg-emerald-50/90 p-6 rounded-2xl border border-emerald-200 space-y-4 shadow-sm animate-fadeIn">
           <div className="flex items-center justify-between border-b border-emerald-200 pb-3">
-            <h3 className="text-base font-bold text-emerald-900 flex items-center space-x-2">
+            <h3 className="text-base font-bold text-emerald-950 flex items-center space-x-2">
               <Eye className="w-5 h-5 text-emerald-600" />
               <span>Decrypted Personal Health Record Payload</span>
             </h3>
-            <span className="text-xs font-mono font-bold text-emerald-800">{decryptedRecord.recordName}</span>
+            <span className="text-xs font-mono font-bold text-emerald-800 bg-emerald-100 px-3 py-1 rounded-full border border-emerald-300">
+              {decryptedRecord.recordName}
+            </span>
           </div>
 
-          <div className="p-4 rounded-xl bg-slate-900 text-slate-100 font-mono text-xs overflow-x-auto whitespace-pre-wrap">
-            {JSON.stringify(JSON.parse(decryptedRecord.decryptedPayload), null, 2)}
+          <div className="p-4.5 rounded-xl bg-slate-950 text-slate-100 font-mono text-xs overflow-x-auto whitespace-pre-wrap leading-relaxed shadow-inner">
+            {renderPayload(decryptedRecord.decryptedPayload)}
           </div>
         </div>
       )}
 
       {decryptionError && (
-        <div className="p-4 rounded-xl bg-rose-50 border border-rose-200 text-rose-800 text-xs flex items-center space-x-2">
+        <div className="p-4 rounded-xl bg-rose-50 border border-rose-200 text-rose-800 text-xs flex items-center space-x-2 animate-fadeIn">
           <ShieldAlert className="w-5 h-5 text-rose-600 flex-shrink-0" />
           <span>{decryptionError}</span>
         </div>

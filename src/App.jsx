@@ -13,6 +13,48 @@ import LoginPage from './pages/LoginPage';
 import RegisterPage from './pages/RegisterPage';
 import { setAuthHeaders } from './services/api';
 
+class ErrorBoundary extends React.Component {
+  constructor(props) {
+    super(props);
+    this.state = { hasError: false, error: null };
+  }
+
+  static getDerivedStateFromError(error) {
+    return { hasError: true, error };
+  }
+
+  componentDidCatch(error, errorInfo) {
+    console.error("ErrorBoundary caught an error:", error, errorInfo);
+  }
+
+  render() {
+    if (this.state.hasError) {
+      return (
+        <div className="p-8 max-w-xl mx-auto my-12 bg-rose-50 border border-rose-200 rounded-2xl text-center space-y-4 shadow-lg">
+          <div className="w-12 h-12 bg-rose-100 text-rose-600 rounded-full flex items-center justify-center mx-auto text-xl font-bold">
+            ⚠️
+          </div>
+          <h2 className="text-lg font-bold text-rose-950">Portal Render Error</h2>
+          <p className="text-xs text-rose-700 font-mono bg-white p-3 rounded-xl border border-rose-200 overflow-x-auto text-left">
+            {this.state.error?.message || 'An unexpected rendering error occurred.'}
+          </p>
+          <button
+            onClick={() => {
+              this.setState({ hasError: false, error: null });
+              window.location.reload();
+            }}
+            className="px-5 py-2 bg-rose-600 hover:bg-rose-700 text-white rounded-xl text-xs font-bold transition shadow-sm"
+          >
+            Reload Component
+          </button>
+        </div>
+      );
+    }
+
+    return this.props.children;
+  }
+}
+
 export default function App() {
   // Load persisted user session (defaults to null if not logged in)
   const [currentUser, setCurrentUser] = useState(() => {
@@ -144,7 +186,7 @@ export default function App() {
   }
 
   return (
-    <div className="min-h-screen bg-slate-50 text-slate-900 flex selection:bg-emerald-500 selection:text-white">
+    <div className="h-screen overflow-hidden bg-slate-50 text-slate-900 flex flex-col lg:flex-row selection:bg-emerald-500 selection:text-white">
       
       {/* Left Role-Filtered Sidebar Layout */}
       <Sidebar
@@ -156,12 +198,12 @@ export default function App() {
       />
 
       {/* Main Canvas Area */}
-      <div className="flex-1 flex flex-col min-w-0 overflow-y-auto">
+      <div className="flex-1 flex flex-col min-w-0 overflow-y-auto h-screen">
         
         {/* Top App Bar */}
-        <header className="bg-white border-b border-slate-200/80 px-6 py-4 flex items-center justify-between sticky top-0 z-40">
+        <header className="bg-white border-b border-slate-200/80 px-4 sm:px-6 py-3.5 sm:py-4 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 sticky top-0 z-30 shadow-2xs">
           <div>
-            <h2 className="font-extrabold text-lg text-slate-900 capitalize">
+            <h2 className="font-extrabold text-base sm:text-lg text-slate-900 capitalize">
               {activeTab === 'dashboard' && 'Healthcare Management Dashboard'}
               {activeTab === 'kgc' && 'Key Generation Center (KGC) Admin Authority'}
               {activeTab === 'patient' && 'Patient PHR Encryption & Upload Portal'}
@@ -171,10 +213,10 @@ export default function App() {
               {activeTab === 'cloud' && 'Encrypted Cloud Storage Vault'}
               {activeTab === 'benchmarks' && 'Performance & Experimental Analytics'}
             </h2>
-            <p className="text-sm text-slate-500 font-medium">HABKS-CR Cryptographic Platform (Role-Isolated Navigation)</p>
+            <p className="text-xs sm:text-sm text-slate-500 font-medium">HABKS-CR Cryptographic Platform (Role-Isolated Navigation)</p>
           </div>
 
-          <div className="flex items-center space-x-3">
+          <div className="flex items-center space-x-2.5 sm:space-x-3 shrink-0 self-end sm:self-auto">
             <button
               onClick={handleLogout}
               className="px-3.5 py-1.5 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-bold transition border border-slate-200"
@@ -189,15 +231,17 @@ export default function App() {
         </header>
 
         {/* Dynamic Page Content */}
-        <main className="p-6 max-w-7xl w-full mx-auto space-y-6">
-          {activeTab === 'dashboard' && <DashboardOverview setActiveTab={handleTabChange} />}
-          {activeTab === 'kgc' && <KGCAdmin onUserUpdated={() => {}} />}
-          {activeTab === 'patient' && <PatientPortal activeUserId={currentUser?.userId} onPHRUploaded={() => {}} />}
-          {activeTab === 'doctor' && <DoctorPortal activeUserId={currentUser?.userId} />}
-          {activeTab === 'researcher' && <ResearcherPortal activeUserId={currentUser?.userId} />}
-          {activeTab === 'collusion' && <CollusionLab />}
-          {activeTab === 'cloud' && <CloudVault />}
-          {activeTab === 'benchmarks' && <PerformanceDashboard />}
+        <main className="p-3.5 sm:p-6 lg:p-8 max-w-7xl w-full mx-auto space-y-6">
+          <ErrorBoundary>
+            {activeTab === 'dashboard' && <DashboardOverview setActiveTab={handleTabChange} />}
+            {activeTab === 'kgc' && <KGCAdmin onUserUpdated={() => {}} />}
+            {activeTab === 'patient' && <PatientPortal activeUserId={currentUser?.userId} onPHRUploaded={() => {}} />}
+            {activeTab === 'doctor' && <DoctorPortal activeUserId={currentUser?.userId} />}
+            {activeTab === 'researcher' && <ResearcherPortal activeUserId={currentUser?.userId} />}
+            {activeTab === 'collusion' && <CollusionLab />}
+            {activeTab === 'cloud' && <CloudVault />}
+            {activeTab === 'benchmarks' && <PerformanceDashboard />}
+          </ErrorBoundary>
         </main>
 
         {/* Footer */}

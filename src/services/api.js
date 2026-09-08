@@ -30,12 +30,65 @@ export const rotateUserKey = (data) => apiClient.post('/kgc/rotate-key', data);
 export const clearDatabase = () => apiClient.post('/kgc/clear-database');
 export const getUsers = () => apiClient.get('/kgc/users');
 
-// PHR Storage, Search & Decryption API Calls
-export const uploadPHR = (phrData) => apiClient.post('/phr/upload', phrData);
+// PHR Storage, Search & Decryption API Calls with Dynamic Context Headers
+export const uploadPHR = (phrData) => {
+  const currentHeaderId = apiClient.defaults.headers.common['x-user-id'];
+  const activeUser = (phrData.patientId && phrData.patientId !== 'admin_kgc') 
+    ? phrData.patientId 
+    : (currentHeaderId && currentHeaderId !== 'admin_kgc' ? currentHeaderId : 'john');
+
+  return apiClient.post('/phr/upload', phrData, {
+    headers: {
+      'x-user-id': activeUser,
+      'x-user-role': 'PATIENT'
+    }
+  });
+};
+
 export const getCloudPHRList = (patientId = '') => apiClient.get(`/phr/cloud-list${patientId ? `?patientId=${patientId}` : ''}`);
-export const revokePHRSharing = (data) => apiClient.post('/phr/revoke-sharing', data);
-export const searchPHR = (searchData) => apiClient.post('/phr/search', searchData);
-export const decryptPHR = (decryptData) => apiClient.post('/phr/decrypt', decryptData);
+
+export const revokePHRSharing = (data) => {
+  const currentHeaderId = apiClient.defaults.headers.common['x-user-id'];
+  const activeUser = (data.patientId && data.patientId !== 'admin_kgc') 
+    ? data.patientId 
+    : (currentHeaderId && currentHeaderId !== 'admin_kgc' ? currentHeaderId : 'john');
+
+  return apiClient.post('/phr/revoke-sharing', data, {
+    headers: {
+      'x-user-id': activeUser,
+      'x-user-role': 'PATIENT'
+    }
+  });
+};
+
+export const searchPHR = (searchData) => {
+  const currentHeaderId = apiClient.defaults.headers.common['x-user-id'];
+  const activeUser = (searchData.doctorUserId && searchData.doctorUserId !== 'admin_kgc') 
+    ? searchData.doctorUserId 
+    : (currentHeaderId && currentHeaderId !== 'admin_kgc' ? currentHeaderId : 'dr_arun');
+
+  return apiClient.post('/phr/search', searchData, {
+    headers: {
+      'x-user-id': activeUser,
+      'x-user-role': 'DOCTOR'
+    }
+  });
+};
+
+export const decryptPHR = (decryptData) => {
+  const currentHeaderId = apiClient.defaults.headers.common['x-user-id'];
+  const activeUser = (decryptData.doctorUserId && decryptData.doctorUserId !== 'admin_kgc') 
+    ? decryptData.doctorUserId 
+    : (currentHeaderId && currentHeaderId !== 'admin_kgc' ? currentHeaderId : 'dr_arun');
+
+  return apiClient.post('/phr/decrypt', decryptData, {
+    headers: {
+      'x-user-id': activeUser,
+      'x-user-role': 'DOCTOR'
+    }
+  });
+};
+
 export const getUserHistory = (userId) => apiClient.get(`/user/history/${userId}`);
 
 // Security & Analytics API Calls
