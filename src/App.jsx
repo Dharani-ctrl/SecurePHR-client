@@ -14,22 +14,74 @@ import RegisterPage from './pages/RegisterPage';
 import { setAuthHeaders } from './services/api';
 
 export default function App() {
-  const [currentUser, setCurrentUser] = useState({
-    userId: 'admin_kgc',
-    name: 'Admin (KGC Authority)',
-    email: 'admin@kgc.cloud',
-    role: 'ADMIN',
-    status: 'ACTIVE'
+  // Load persisted user session (defaults to null if not logged in)
+  const [currentUser, setCurrentUser] = useState(() => {
+    try {
+      const savedUser = localStorage.getItem('securephr_user');
+      return savedUser ? JSON.parse(savedUser) : null;
+    } catch (e) {
+      return null;
+    }
   });
 
-  const [authView, setAuthView] = useState('LOGGED_IN'); // 'LOGIN', 'REGISTER', 'LOGGED_IN'
-  const [activeTab, setActiveTab] = useState('kgc');
+  // Persist current view: 'LOGIN', 'REGISTER', or 'LOGGED_IN'
+  const [authView, setAuthView] = useState(() => {
+    try {
+      const savedView = localStorage.getItem('securephr_auth_view');
+      if (savedView) return savedView;
+      const savedUser = localStorage.getItem('securephr_user');
+      return savedUser ? 'LOGGED_IN' : 'LOGIN';
+    } catch (e) {
+      return 'LOGIN';
+    }
+  });
+
+  const [activeTab, setActiveTab] = useState(() => {
+    try {
+      const savedTab = localStorage.getItem('securephr_tab');
+      if (savedTab) return savedTab;
+      const savedUser = localStorage.getItem('securephr_user');
+      if (savedUser) {
+        const u = JSON.parse(savedUser);
+        switch (u?.role?.toUpperCase()) {
+          case 'PATIENT': return 'patient';
+          case 'DOCTOR': return 'doctor';
+          case 'RESEARCHER': return 'researcher';
+          case 'ADMIN':
+          case 'ADMIN_KGC': return 'kgc';
+        }
+      }
+      return 'kgc';
+    } catch (e) {
+      return 'kgc';
+    }
+  });
+
   const [isAuditOpen, setIsAuditOpen] = useState(false);
+
+  // Sync authView to localStorage
+  const handleSetAuthView = (view) => {
+    setAuthView(view);
+    try {
+      localStorage.setItem('securephr_auth_view', view);
+    } catch (e) {}
+  };
+
+  // Sync activeTab to localStorage
+  const handleTabChange = (tabId) => {
+    setActiveTab(tabId);
+    try {
+      localStorage.setItem('securephr_tab', tabId);
+    } catch (e) {}
+  };
 
   // Sync Headers with current Active User context for RBAC safely
   useEffect(() => {
     if (currentUser) {
       setAuthHeaders(currentUser.userId, currentUser.role);
+      try {
+        localStorage.setItem('securephr_user', JSON.stringify(currentUser));
+      } catch (e) {}
     }
   }, [currentUser]);
 
@@ -37,28 +89,39 @@ export default function App() {
   const handleLoginSuccess = (user) => {
     setCurrentUser(user);
     setAuthHeaders(user.userId, user.role);
-    setAuthView('LOGGED_IN');
+    handleSetAuthView('LOGGED_IN');
+
+    try {
+      localStorage.setItem('securephr_user', JSON.stringify(user));
+    } catch (e) {}
 
     // Automatic Role-Based Redirection to Specific Dashboard
+    let targetTab = 'kgc';
     switch (user?.role?.toUpperCase()) {
       case 'PATIENT':
-        setActiveTab('patient');
+        targetTab = 'patient';
         break;
       case 'DOCTOR':
-        setActiveTab('doctor');
+        targetTab = 'doctor';
         break;
       case 'RESEARCHER':
-        setActiveTab('researcher');
+        targetTab = 'researcher';
         break;
       case 'ADMIN':
       case 'ADMIN_KGC':
       default:
-        setActiveTab('kgc');
+        targetTab = 'kgc';
         break;
     }
+    handleTabChange(targetTab);
   };
 
   const handleLogout = () => {
+    try {
+      localStorage.removeItem('securephr_user');
+      localStorage.removeItem('securephr_tab');
+      localStorage.setItem('securephr_auth_view', 'LOGIN');
+    } catch (e) {}
     setCurrentUser(null);
     setAuthView('LOGIN');
   };
@@ -67,7 +130,7 @@ export default function App() {
     return (
       <LoginPage
         onLoginSuccess={handleLoginSuccess}
-        onSwitchToRegister={() => setAuthView('REGISTER')}
+        onSwitchToRegister={() => handleSetAuthView('REGISTER')}
       />
     );
   }
@@ -75,7 +138,7 @@ export default function App() {
   if (authView === 'REGISTER') {
     return (
       <RegisterPage
-        onSwitchToLogin={() => setAuthView('LOGIN')}
+        onSwitchToLogin={() => handleSetAuthView('LOGIN')}
       />
     );
   }
@@ -86,7 +149,7 @@ export default function App() {
       {/* Left Role-Filtered Sidebar Layout */}
       <Sidebar
         activeTab={activeTab}
-        setActiveTab={setActiveTab}
+        setActiveTab={handleTabChange}
         currentUser={currentUser}
         onLogout={handleLogout}
         onOpenAudit={() => setIsAuditOpen(true)}
@@ -127,7 +190,7 @@ export default function App() {
 
         {/* Dynamic Page Content */}
         <main className="p-6 max-w-7xl w-full mx-auto space-y-6">
-          {activeTab === 'dashboard' && <DashboardOverview setActiveTab={setActiveTab} />}
+          {activeTab === 'dashboard' && <DashboardOverview setActiveTab={handleTabChange} />}
           {activeTab === 'kgc' && <KGCAdmin onUserUpdated={() => {}} />}
           {activeTab === 'patient' && <PatientPortal activeUserId={currentUser?.userId} onPHRUploaded={() => {}} />}
           {activeTab === 'doctor' && <DoctorPortal activeUserId={currentUser?.userId} />}

@@ -3,8 +3,8 @@ import { Lock, Mail, Key, ShieldCheck, ArrowRight, CheckCircle2, UserCheck, Aler
 import { loginUser, setAuthHeaders } from '../services/api';
 
 export default function LoginPage({ onLoginSuccess, onSwitchToRegister }) {
-  const [email, setEmail] = useState('admin@kgc.cloud');
-  const [password, setPassword] = useState('admin@123');
+  const [email, setEmail] = useState('admin@gmail.com');
+  const [password, setPassword] = useState('admin');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
 
