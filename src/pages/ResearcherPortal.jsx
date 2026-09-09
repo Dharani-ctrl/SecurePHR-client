@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Search, Key, Lock, Unlock, FileText, CheckCircle, XCircle, Clock, Eye, Microscope, Award } from 'lucide-react';
+import { Search, Key, Lock, Unlock, FileText, CheckCircle, XCircle, Clock, Eye, Microscope, Award, Paperclip, X, Upload } from 'lucide-react';
 import { searchPHR, decryptPHR, getUsers, getUserHistory } from '../services/api';
 
 export default function ResearcherPortal({ activeUserId = 'researcher_david' }) {
@@ -305,20 +305,96 @@ export default function ResearcherPortal({ activeUserId = 'researcher_david' }) 
         </div>
       )}
 
-      {/* Decrypted Payload Viewer Card */}
+      {/* Decrypted Payload Viewer — Smart Format Renderer */}
       {decryptedRecord && (
         <div className="bg-purple-50 p-6 rounded-xl border border-purple-200 space-y-4 shadow-sm">
           <div className="flex items-center justify-between border-b border-purple-200 pb-3">
             <h3 className="text-base font-bold text-purple-900 flex items-center space-x-2">
-              <Eye className="w-5 h-5 text-purple-600" />
-              <span>Decrypted Research Dataset Payload</span>
+              <Unlock className="w-5 h-5 text-purple-600" />
+              <span>Decrypted Research Dataset</span>
             </h3>
-            <span className="text-xs font-mono font-bold text-purple-800">{decryptedRecord.recordName}</span>
+            <div className="flex items-center space-x-2">
+              {decryptedRecord.fileType && decryptedRecord.fileType !== 'text/plain' && (
+                <span className="text-[10px] font-bold text-purple-700 bg-purple-100 px-2 py-0.5 rounded-full border border-purple-200 font-mono">
+                  {decryptedRecord.fileType}
+                </span>
+              )}
+              <span className="text-xs font-mono font-bold text-purple-800">{decryptedRecord.recordName}</span>
+              <button onClick={() => setDecryptedRecord(null)} className="text-slate-400 hover:text-slate-600 transition">
+                <X className="w-4 h-4" />
+              </button>
+            </div>
           </div>
 
-          <div className="p-4 rounded-xl bg-slate-900 text-slate-100 font-mono text-xs overflow-x-auto whitespace-pre-wrap">
-            {renderPayload(decryptedRecord.decryptedPayload)}
-          </div>
+          {(() => {
+            const payload = decryptedRecord.decryptedPayload || '';
+            const ft = decryptedRecord.fileType || 'text/plain';
+
+            // Image files
+            if (ft.startsWith('image/') || payload.startsWith('data:image/')) {
+              const src = payload.startsWith('data:') ? payload : `data:${ft};base64,${payload}`;
+              return (
+                <div className="space-y-2">
+                  <div className="text-[10px] font-bold text-slate-500 uppercase tracking-wider">Decrypted Image File</div>
+                  <div className="rounded-xl overflow-hidden border border-purple-200 bg-slate-950 p-3 text-center">
+                    <img src={src} alt={decryptedRecord.originalFileName || decryptedRecord.recordName}
+                      className="max-h-96 max-w-full mx-auto rounded-lg shadow-lg object-contain" />
+                  </div>
+                  {decryptedRecord.originalFileName && (
+                    <div className="text-[11px] text-slate-500 text-center font-mono">{decryptedRecord.originalFileName}</div>
+                  )}
+                  <a href={src} download={decryptedRecord.originalFileName || 'decrypted_image'}
+                    className="inline-flex items-center space-x-2 px-4 py-2 bg-purple-600 hover:bg-purple-700 text-white rounded-xl text-xs font-bold transition shadow-sm">
+                    <Upload className="w-3.5 h-3.5 rotate-180" />
+                    <span>Download Image</span>
+                  </a>
+                </div>
+              );
+            }
+
+            // PDF files
+            if (ft === 'application/pdf' || payload.startsWith('data:application/pdf')) {
+              const src = payload.startsWith('data:') ? payload : `data:application/pdf;base64,${payload}`;
+              return (
+                <div className="space-y-2">
+                  <div className="text-[10px] font-bold text-slate-500 uppercase tracking-wider">Decrypted PDF Document</div>
+                  <iframe src={src} title={decryptedRecord.originalFileName || 'Research PDF'}
+                    className="w-full h-96 rounded-xl border border-purple-200" />
+                  <a href={src} download={decryptedRecord.originalFileName || 'decrypted_document.pdf'}
+                    className="inline-flex items-center space-x-2 px-4 py-2 bg-rose-600 hover:bg-rose-700 text-white rounded-xl text-xs font-bold transition shadow-sm">
+                    <Upload className="w-3.5 h-3.5 rotate-180" />
+                    <span>Download PDF</span>
+                  </a>
+                </div>
+              );
+            }
+
+            // Other binary files
+            if (payload.startsWith('data:') && !ft.startsWith('text/')) {
+              return (
+                <div className="space-y-2">
+                  <div className="text-[10px] font-bold text-slate-500 uppercase tracking-wider">Decrypted File</div>
+                  <div className="p-6 rounded-xl bg-purple-100 border border-purple-200 text-center space-y-3">
+                    <Paperclip className="w-12 h-12 mx-auto text-purple-500" />
+                    <div className="font-bold text-purple-900">{decryptedRecord.originalFileName || 'Research File'}</div>
+                    <div className="text-xs text-slate-500">{ft}</div>
+                    <a href={payload} download={decryptedRecord.originalFileName || 'decrypted_file'}
+                      className="inline-flex items-center space-x-2 px-4 py-2 bg-purple-600 hover:bg-purple-700 text-white rounded-xl text-xs font-bold transition shadow-sm">
+                      <Upload className="w-3.5 h-3.5 rotate-180" />
+                      <span>Download File</span>
+                    </a>
+                  </div>
+                </div>
+              );
+            }
+
+            // Plain text / JSON fallback
+            return (
+              <div className="p-4 rounded-xl bg-slate-900 text-slate-100 font-mono text-xs overflow-x-auto whitespace-pre-wrap">
+                {renderPayload(payload)}
+              </div>
+            );
+          })()}
         </div>
       )}
 

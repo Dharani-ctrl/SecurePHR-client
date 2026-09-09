@@ -15,6 +15,7 @@ export const setAuthHeaders = (userId, userRole) => {
 
 // Auth API Calls
 export const loginUser = (credentials) => apiClient.post('/auth/login', credentials);
+export const verifyTotpApi = (data) => apiClient.post('/auth/verify-totp', data);
 export const registerUser = (userData) => apiClient.post('/auth/register', userData);
 
 // KGC / Admin API Calls

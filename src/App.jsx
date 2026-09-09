@@ -66,13 +66,60 @@ export default function App() {
     }
   });
 
+  // Helper to extract route from current URL hash or pathname
+  const getRouteFromUrl = () => {
+    const hash = window.location.hash.replace(/^#\/?/, '').toLowerCase();
+    const path = window.location.pathname.replace(/^\//, '').toLowerCase();
+    return hash || path || '';
+  };
+
+  // Helper to map route string to authView and activeTab
+  const parseRoute = (routeStr, savedUser) => {
+    const validTabs = ['dashboard', 'kgc', 'admin', 'patient', 'doctor', 'researcher', 'collusion', 'cloud', 'benchmarks'];
+    
+    if (routeStr === 'login') return { authView: 'LOGIN', activeTab: null };
+    if (routeStr === 'register') return { authView: 'REGISTER', activeTab: null };
+    
+    let tab = routeStr;
+    if (tab === 'admin') tab = 'kgc';
+    
+    if (validTabs.includes(tab)) {
+      if (savedUser) {
+        return { authView: 'LOGGED_IN', activeTab: tab };
+      } else {
+        return { authView: 'LOGIN', activeTab: tab };
+      }
+    }
+    
+    // Default based on savedUser
+    if (savedUser) {
+      let defaultTab = 'kgc';
+      switch (savedUser?.role?.toUpperCase()) {
+        case 'PATIENT': defaultTab = 'patient'; break;
+        case 'DOCTOR': defaultTab = 'doctor'; break;
+        case 'RESEARCHER': defaultTab = 'researcher'; break;
+        case 'ADMIN':
+        case 'ADMIN_KGC': defaultTab = 'kgc'; break;
+      }
+      return { authView: 'LOGGED_IN', activeTab: defaultTab };
+    }
+
+    return { authView: 'LOGIN', activeTab: 'kgc' };
+  };
+
+  // Synchronize state with initial URL route on load
+  const initialUrlRoute = getRouteFromUrl();
+
   // Persist current view: 'LOGIN', 'REGISTER', or 'LOGGED_IN'
   const [authView, setAuthView] = useState(() => {
     try {
+      const savedUser = localStorage.getItem('securephr_user');
+      const userObj = savedUser ? JSON.parse(savedUser) : null;
+      const parsed = parseRoute(initialUrlRoute, userObj);
+      if (parsed.authView) return parsed.authView;
       const savedView = localStorage.getItem('securephr_auth_view');
       if (savedView) return savedView;
-      const savedUser = localStorage.getItem('securephr_user');
-      return savedUser ? 'LOGGED_IN' : 'LOGIN';
+      return userObj ? 'LOGGED_IN' : 'LOGIN';
     } catch (e) {
       return 'LOGIN';
     }
@@ -80,12 +127,14 @@ export default function App() {
 
   const [activeTab, setActiveTab] = useState(() => {
     try {
+      const savedUser = localStorage.getItem('securephr_user');
+      const userObj = savedUser ? JSON.parse(savedUser) : null;
+      const parsed = parseRoute(initialUrlRoute, userObj);
+      if (parsed.activeTab) return parsed.activeTab;
       const savedTab = localStorage.getItem('securephr_tab');
       if (savedTab) return savedTab;
-      const savedUser = localStorage.getItem('securephr_user');
-      if (savedUser) {
-        const u = JSON.parse(savedUser);
-        switch (u?.role?.toUpperCase()) {
+      if (userObj) {
+        switch (userObj?.role?.toUpperCase()) {
           case 'PATIENT': return 'patient';
           case 'DOCTOR': return 'doctor';
           case 'RESEARCHER': return 'researcher';
@@ -100,6 +149,46 @@ export default function App() {
   });
 
   const [isAuditOpen, setIsAuditOpen] = useState(false);
+
+  // Synchronize state with URL hash on change
+  useEffect(() => {
+    let targetRoute = 'login';
+    if (authView === 'LOGIN') {
+      targetRoute = 'login';
+    } else if (authView === 'REGISTER') {
+      targetRoute = 'register';
+    } else if (authView === 'LOGGED_IN') {
+      targetRoute = activeTab || 'kgc';
+    }
+
+    const currentRoute = getRouteFromUrl();
+    if (currentRoute !== targetRoute) {
+      window.history.replaceState(null, '', `/#/${targetRoute}`);
+    }
+  }, [authView, activeTab]);
+
+  // Listen to browser navigation events (Back / Forward / Direct URL edit)
+  useEffect(() => {
+    const handleUrlChange = () => {
+      const route = getRouteFromUrl();
+      const parsed = parseRoute(route, currentUser);
+      if (parsed.authView && parsed.authView !== authView) {
+        setAuthView(parsed.authView);
+        try { localStorage.setItem('securephr_auth_view', parsed.authView); } catch(e){}
+      }
+      if (parsed.activeTab && parsed.activeTab !== activeTab) {
+        setActiveTab(parsed.activeTab);
+        try { localStorage.setItem('securephr_tab', parsed.activeTab); } catch(e){}
+      }
+    };
+
+    window.addEventListener('hashchange', handleUrlChange);
+    window.addEventListener('popstate', handleUrlChange);
+    return () => {
+      window.removeEventListener('hashchange', handleUrlChange);
+      window.removeEventListener('popstate', handleUrlChange);
+    };
+  }, [authView, activeTab, currentUser]);
 
   // Sync authView to localStorage
   const handleSetAuthView = (view) => {
