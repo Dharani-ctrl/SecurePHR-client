@@ -56,7 +56,6 @@ export default function LoginPage({ onLoginSuccess, onSwitchToRegister }) {
     }
   };
 
-  // Handle 6-Digit TOTP Input Box changes
   const handleDigitChange = (index, value) => {
     if (!/^\d*$/.test(value)) return;
 
@@ -88,7 +87,6 @@ export default function LoginPage({ onLoginSuccess, onSwitchToRegister }) {
     }
   };
 
-  // Step 2: Handle TOTP Verification & Role Routing
   const handleTotpSubmit = async (e) => {
     e?.preventDefault();
     const fullCode = totpDigits.join('');
@@ -123,7 +121,7 @@ export default function LoginPage({ onLoginSuccess, onSwitchToRegister }) {
     }
   };
 
-  // Quick helper to fill live TOTP code
+
   const fillLiveTotp = () => {
     if (accountData?.user?.currentTotpCode) {
       const digits = String(accountData.user.currentTotpCode).split('');
@@ -148,7 +146,7 @@ export default function LoginPage({ onLoginSuccess, onSwitchToRegister }) {
         </p>
       </div>
 
-      {/* Main Authentication Flow Container */}
+   
       <div className="mt-6 sm:mx-auto sm:w-full sm:max-w-xl">
         <div className="bg-white py-7 px-6 sm:px-8 shadow-sm border border-slate-200/90 rounded-2xl space-y-6">
 

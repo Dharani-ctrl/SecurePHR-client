@@ -63,10 +63,10 @@ export default function CollusionLab() {
         </div>
       </div>
 
-      {/* Interactive Collusion Selector Grid */}
+      
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-center">
         
-        {/* User A Selection */}
+        
         <div className="lg:col-span-5 bg-white p-5 rounded-xl border border-slate-200 shadow-sm space-y-3">
           <div className="flex items-center space-x-2 text-sky-700 font-bold text-sm">
             <Users className="w-4 h-4" />
@@ -219,7 +219,7 @@ export default function CollusionLab() {
 
           </div>
 
-          {/* Cryptographic Mathematical Proof Box */}
+     
           <div className="bg-white p-6 rounded-xl border border-slate-200 shadow-sm space-y-3">
             <h4 className="text-xs font-bold uppercase tracking-wider text-sky-700 flex items-center space-x-1.5">
               <Cpu className="w-4 h-4" />

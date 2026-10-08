@@ -56,8 +56,7 @@ export default function DashboardOverview({ setActiveTab }) {
 
   return (
     <div className="space-y-6">
-      
-      {/* Top Metrics Cards Row (Matching NatureCure HMS Reference UI) */}
+ 
       <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3">
         
         <div className="bg-white p-4 rounded-2xl border border-slate-200/90 shadow-2xs flex flex-col items-center justify-center text-center">
@@ -110,7 +109,7 @@ export default function DashboardOverview({ setActiveTab }) {
 
       </div>
 
-      {/* HABKS-CR System Architecture & Interactive Workflow Diagram (Fig. 2 from Research Paper) */}
+
       <div className="bg-white p-6 rounded-2xl border border-slate-200/90 shadow-2xs space-y-6">
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b border-slate-100 pb-4">
           <div>
@@ -129,10 +128,9 @@ export default function DashboardOverview({ setActiveTab }) {
           </span>
         </div>
 
-        {/* 4 Entities Flow Grid (Matching Fig. 2 Architecture Diagram) */}
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 relative">
           
-          {/* Box 1: Data Owner (Patient) */}
+    
           <div className="bg-slate-50/80 p-4 rounded-xl border border-slate-200 space-y-3 relative group hover:border-emerald-400 transition">
             <div className="flex items-center justify-between">
               <span className="px-2.5 py-0.5 rounded-md text-[11px] font-bold bg-emerald-100 text-emerald-800 border border-emerald-200">

@@ -11,7 +11,7 @@ export default function DoctorPortal() {
   const [searchResults, setSearchResults] = useState(null);
   const [trapdoorMeta, setTrapdoorMeta] = useState(null);
 
-  // Decryption State
+
   const [decryptedRecord, setDecryptedRecord] = useState(null);
   const [decryptionError, setDecryptionError] = useState(null);
   const [loadingDecryptId, setLoadingDecryptId] = useState(null);
@@ -118,7 +118,7 @@ export default function DoctorPortal() {
   return (
     <div className="space-y-6">
       
-      {/* Header Banner */}
+
       <div className="bg-gradient-to-r from-sky-950 via-indigo-950 to-slate-900 p-6 sm:p-7 rounded-2xl text-white shadow-xl border border-sky-900/60 relative overflow-hidden">
         <div className="absolute top-0 right-0 w-96 h-96 bg-indigo-500/10 rounded-full blur-3xl pointer-events-none -mr-20 -mt-20"></div>
         <div className="relative z-10 space-y-2 max-w-3xl">
@@ -136,12 +136,12 @@ export default function DoctorPortal() {
         </div>
       </div>
 
-      {/* Doctor Identity Selector & Search Bar */}
+  
       <div className="bg-white p-6 sm:p-7 rounded-2xl border border-slate-200/90 shadow-xs space-y-5">
         
         <div className="flex flex-col lg:flex-row gap-4 items-stretch lg:items-end">
           
-          {/* Select Doctor Profile */}
+  
           <div className="w-full lg:w-1/3 space-y-1.5">
             <label className="block text-xs font-semibold text-slate-700 flex items-center space-x-1">
               <Key className="w-3.5 h-3.5 text-sky-600" />
@@ -160,7 +160,7 @@ export default function DoctorPortal() {
             </select>
           </div>
 
-          {/* Search Keywords Input */}
+     
           <div className="w-full lg:w-2/3 flex flex-col sm:flex-row gap-2 items-stretch sm:items-end">
             <div className="flex-1 space-y-1.5">
               <label className="block text-xs font-semibold text-slate-700">Search Keywords (Comma Separated)</label>
@@ -185,7 +185,6 @@ export default function DoctorPortal() {
 
         </div>
 
-        {/* Doctor Active Attributes Card */}
         {currentDoctor && (
           <div className="flex flex-wrap items-center gap-2 p-3.5 rounded-xl bg-slate-50 border border-slate-200 text-xs">
             <span className="text-slate-600 font-semibold">Bound Attributes for {currentDoctor.name}:</span>
